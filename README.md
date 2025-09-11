@@ -335,6 +335,7 @@ El sistema permite:
 - **Listas (`List<T>`):** Manejo de postulantes en cada solicitud.
 - **Algoritmo QuickSort:** Ordena las solicitudes según el criterio elegido por el usuario.
 
+Con respecto a ello el proyecto implementa tres estructuras principales: Árbol Binario de Búsqueda (ABB) para las solicitudes, Cola de Prioridad para notificaciones, y QuickSort para ordenar. Las listas de C# `(List<T>)` se usan únicamente como contenedores auxiliares para simplificar el manejo interno de datos (ejemplo: postulantes o resultados del recorrido del ABB).”
 ---
 
 ## 8.4. Lógica del Programa
@@ -380,16 +381,32 @@ direction TB
         +DateTime FechaLimite
         +string Estado
         +Usuario Solicitante
-        +List<Usuario> Postulantes
-        +Usuario Aceptado
+        +List~Usuario~ Postulantes
+        +Usuario? Aceptado
     }
 
-    class ArbolBinarioBusqueda {
-        -NodoABB raiz
-        +Insertar(Solicitud)
-        +Buscar(int id)
-        +Eliminar(int id)
-        +ObtenerInorden()
+    class Notificacion {
+        +string Mensaje
+        +DateTime Fecha
+        +int Prioridad
+    }
+
+    class NodoCola {
+        +Notificacion Dato
+        +NodoCola Siguiente
+    }
+
+    class ColaPrioridad {
+        -NodoCola frente
+        +Encolar(Notificacion, int prioridad)
+        +Desencolar(): Notificacion
+        +Mostrar()
+    }
+
+    class GestorNotificaciones {
+        -ColaPrioridad cola
+        +EnviarNotificacion()
+        +MostrarNotificaciones()
     }
 
     class NodoABB {
@@ -398,64 +415,105 @@ direction TB
         +NodoABB Derecha
     }
 
+    class ArbolBinarioBusqueda {
+        -NodoABB Raiz
+        +Insertar(Solicitud)
+        +Buscar(int): Solicitud?
+        +Eliminar(int)
+        +ObtenerInorden(): List~Solicitud~
+    }
+
     class GestorSolicitudes {
         -ArbolBinarioBusqueda arbol
+        -GestorNotificaciones gestorNotificaciones
         +CrearSolicitud()
         +MostrarSolicitudes()
         +BuscarSolicitud()
         +EliminarSolicitud()
-        +OrdenarSolicitudes()
+        +MostrarSolicitudesOrdenadas()
+        +PostularSolicitud()
+        +AceptarPostulacion()
+        +CerrarSolicitud()
     }
 
-    class ColaPrioridad {
-        +Encolar(string mensaje, int prioridad)
-        +Desencolar()
-        +Mostrar()
+    class QuickSort {
+        +Ordenar(List~T~, Func~T,object~ criterio)
     }
 
-    Usuario --> Solicitud
-    Solicitud --> NodoABB
-    NodoABB --> ArbolBinarioBusqueda
-    ArbolBinarioBusqueda --> GestorSolicitudes
-    ColaPrioridad --> GestorSolicitudes
+    %% Relaciones
+    Solicitud --> Usuario : "1 solicitante"
+    Solicitud --> "0..*" Usuario : "postulantes"
+    Solicitud --> "0..1" Usuario : "aceptado"
 
+    ArbolBinarioBusqueda --> NodoABB : "compuesto de"
+    NodoABB --> Solicitud : "contiene"
+
+    GestorSolicitudes --> ArbolBinarioBusqueda : "usa"
+    GestorSolicitudes --> GestorNotificaciones : "usa"
+    GestorSolicitudes --> QuickSort : "ordena solicitudes"
+
+    GestorNotificaciones --> ColaPrioridad : "usa"
+    ColaPrioridad --> NodoCola : "nodos"
+    NodoCola --> Notificacion : "contiene"
 ```
+
 
 --- 
 
 ## 8.8. Diagrama de flujo
 
- * Diagrama de flujo del constructor más importante para las operaciones del árbol en este caso el NodoABB, porque es el que se usa cada vez que insertamos una solicitud en el ABB:
+* Diagrama de fujo general del programa
 
 ```mermaid
 
 flowchart TD
-    A[Insertar Solicitud en ABB] --> B{¿Nodo actual es null?}
-    B -- Sí --> C[Crear nuevo NodoABB<br/>Constructor NodoABB(solicitud)]
-    C --> D[Asignar solicitud a Dato]
-    D --> E[Inicializar Hijos: Izquierda = null, Derecha = null]
-    E --> F[Retornar Nodo creado]
-
-    B -- No --> G{¿ID solicitud < ID nodo actual?}
-    G -- Sí --> H[Llamar recursivamente Insertar en Izquierda]
-    G -- No --> I[Llamar recursivamente Insertar en Derecha]
+    A([Inicio]) --> B[Mostrar menú principal]
+    B --> C{Opción seleccionada?}
+    C -->|1. Crear solicitud| D[Ingresar datos de solicitud]
+    D --> E[GestorSolicitudes.CrearSolicitud]
+    E --> B
+    C -->|2. Mostrar solicitudes| F[GestorSolicitudes.MostrarSolicitudes]
+    F --> B
+    C -->|3. Buscar solicitud| G[Ingresar ID]
+    G --> H[GestorSolicitudes.BuscarSolicitud]
+    H --> B
+    C -->|4. Eliminar solicitud| I[Ingresar ID]
+    I --> J[GestorSolicitudes.EliminarSolicitud]
+    J --> B
+    C -->|5. Postularse| K[Ingresar ID solicitud + datos usuario]
+    K --> L[GestorSolicitudes.PostularSolicitud]
+    L --> B
+    C -->|6. Aceptar postulante| M[Ingresar ID solicitud + ID postulante]
+    M --> N[GestorSolicitudes.AceptarPostulacion]
+    N --> B
+    C -->|7. Mostrar solicitudes ordenadas| O[Elegir criterio: monto, fechas]
+    O --> P[QuickSort aplicado]
+    P --> B
+    C -->|8. Cerrar solicitud| Q[Ingresar ID]
+    Q --> R[GestorSolicitudes.CerrarSolicitud]
+    R --> B
+    C -->|9. Mostrar notificaciones| S[GestorNotificaciones.MostrarNotificaciones]
+    S --> B
+    C -->|0. Salir| T([Fin])
 
 ```
-   - **Explicación**
-       - Cuando insertas una solicitud, el árbol pregunta si el nodo actual es null.
-
-       - Si sí, se llama al constructor de NodoABB para crear un nuevo nodo.
-
-       - Se asigna la solicitud a Dato.
-
-       - Los punteros Izquierda y Derecha quedan en null.
-
-       - Si no es null, compara el Id de la solicitud:
-
-       - Si es menor, va recursivamente a la rama izquierda.
-
-       - Si es mayor, va recursivamente a la rama derecha.
-
 ---
 
-  
+* Diagrama de flujo del QuickSort 
+Este representa cómo se ordena la lista de solicitudes (ya sea por monto, fecha límite o fecha de creación):
+
+```mermaid
+
+flowchart TD
+    A[" Inicio llamar Quicksort"] --> B{¿Lista tiene más de 1 elemento?}
+    B -->|No| C["Retornar lista tal cual"]
+    B -->|Sí| D["Elegir pivote"]
+    D --> E["Dividir lista en dos sublistas según pivote"]
+    E --> F["Llamar QuickSort(sublista izquierda)"]
+    E --> G["Llamar QuickSort(sublista derecha)"]
+    F --> H["Unir sublista izquierda + pivote + sublista derecha"]
+    G --> H
+    H --> I["Retornar lista ordenada"]
+    I --> J["Fin del proceso"]
+
+```
