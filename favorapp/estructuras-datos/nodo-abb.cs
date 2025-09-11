@@ -8,11 +8,12 @@ namespace FavorApp.estructuras_datos
         public NodoABB? Izquierda { get; set; }
         public NodoABB? Derecha { get; set; }
 
+        // Constructor que inicializa el nodo con un dato y sin hijos
         public NodoABB(Solicitud dato)
         {
             Dato = dato;
-            Izquierda = null;
-            Derecha = null;
+            Izquierda = null; // Inicialmente no tiene hijo izquierdo
+            Derecha = null; // Inicialmente no tiene hijo derecho
         }
     }
 }

@@ -3,11 +3,14 @@ namespace FavorApp.modelos
     public class Usuario
     {
         public int Id { get; set; }
-        public string Nombre { get; set; }
-        public string Telefono { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Telefono { get; set; } = string.Empty;
 
+        //  Constructor vacío (para usar { })
+        public Usuario() { }
 
-        public Usuario (int id, string nombre, string telefono)
+        //  Constructor con parámetros (para crear directamente)
+        public Usuario(int id, string nombre, string telefono)
         {
             Id = id;
             Nombre = nombre;
@@ -16,7 +19,7 @@ namespace FavorApp.modelos
 
         public override string ToString()
         {
-            return $"[Usuario: {Id}] {Nombre} - Tel: {Telefono}";
+            return $"{Nombre} (CI {Id}, Tel: {Telefono})";
         }
     }
 }
